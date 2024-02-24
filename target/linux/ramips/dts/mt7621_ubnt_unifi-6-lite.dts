@@ -139,3 +139,42 @@
 
 	mediatek,disable-radar-background;
 };
+
+// JMM - the serial0 alias doesn't work for setting the order in which the devices are assigned, and so the one e00  becomes the console because the mt6577 driver loads first, fix it by having the same driver also do the console
+
+&uartlite {
+	compatible = "mediatek,mt6577-uart";
+};
+
+
+&palmbus {
+	uartfull@e00 {
+			//compatible = "mediatek,mt6577-uart","ns16550a";
+			compatible = "mediatek,mt6577-uart";
+			reg = <0xe00 0x100>;
+
+			clocks = <&sysc MT7621_CLK_UART3>;
+
+			resets = <&sysc MT7621_RST_UART3>;
+
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 28 IRQ_TYPE_LEVEL_HIGH>;
+
+			reg-shift = <2>;
+			reg-io-width = <4>;
+
+			status = "okay";
+
+			bluetooth {
+				pinctrl-names = "default","runtime";
+				pinctrl-0 = <&uart3_pins>;
+				pinctrl-1 = <&uart3_pins>;
+
+   				compatible = "mediatek,mt7915-bluetooth";
+				boot-gpios=<&gpio 16 GPIO_ACTIVE_LOW>;
+				//reset-gpios=<&gpio 19 GPIO_ACTIVE_LOW>;
+			};
+	};
+};
+
+

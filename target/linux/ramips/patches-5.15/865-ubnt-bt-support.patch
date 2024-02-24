@@ -1,0 +1,100 @@
+--- linux-5.15.148/drivers/tty/serial/8250/Kconfig	2024-01-25 22:52:56.000000000 +0000
++++ linux-5.15.148/drivers/tty/serial/8250/Kconfig	2024-02-23 15:10:44.648477972 +0000
+@@ -449,7 +449,7 @@
+ config SERIAL_8250_MT6577
+ 	tristate "Mediatek serial port support"
+ 	depends on SERIAL_8250
+-	depends on ARCH_MEDIATEK || COMPILE_TEST
++#	depends on ARCH_MEDIATEK || COMPILE_TEST
+ 	help
+ 	  If you have a Mediatek based board and want to use the
+ 	  serial port, say Y to this option. If unsure, say N.
+--- linux-5.15.148/drivers/tty/serial/8250/8250_mtk.c.orig	2024-02-24 01:23:53.878365041 +0000
++++ linux-5.15.148/drivers/tty/serial/8250/8250_mtk.c	2024-02-24 01:44:01.653388000 +0000
+@@ -558,8 +558,10 @@
+ 	uart.port.mapbase = regs->start;
+ 	uart.port.irq = irq;
+ 	uart.port.pm = mtk8250_do_pm;
+-	uart.port.type = PORT_16550;
+-	uart.port.flags = UPF_BOOT_AUTOCONF | UPF_FIXED_PORT;
++	uart.port.type = PORT_16550A;
++	uart.port.flags = UPF_BOOT_AUTOCONF | UPF_FIXED_PORT | 
++		UPF_FIXED_TYPE | UPF_IOREMAP | UPF_SHARE_IRQ |
++		UPF_SKIP_TEST;
+ 	uart.port.dev = &pdev->dev;
+ 	uart.port.iotype = UPIO_MEM32;
+ 	uart.port.regshift = 2;
+--- linux-5.15.148/drivers/bluetooth/btmtkuart.c	2024-01-25 22:52:56.000000000 +0000
++++ linux-5.15.148/drivers/bluetooth/btmtkuart.c	2024-02-24 00:40:01.677304764 +0000
+@@ -34,6 +34,7 @@
+ #define FIRMWARE_MT7622		"mediatek/mt7622pr2h.bin"
+ #define FIRMWARE_MT7663		"mediatek/mt7663pr2h.bin"
+ #define FIRMWARE_MT7668		"mediatek/mt7668pr2h.bin"
++#define FIRMWARE_MT7915		"mediatek/mt7915dan-bt.bin"
+ 
+ #define MTK_STP_TLR_SIZE	2
+ 
+@@ -43,6 +44,7 @@
+ #define BTMTKUART_REQUIRED_WAKEUP	4
+ 
+ #define BTMTKUART_FLAG_STANDALONE_HW	 BIT(0)
++#define BTMTKUART_FLAG_USE_FLOW_CONTROL	 BIT(1)
+ 
+ enum {
+ 	MTK_WMT_PATCH_DWNLD = 0x1,
+@@ -145,6 +147,8 @@
+ 	((bdev)->data->flags & BTMTKUART_FLAG_STANDALONE_HW)
+ #define btmtkuart_is_builtin_soc(bdev)	\
+ 	!((bdev)->data->flags & BTMTKUART_FLAG_STANDALONE_HW)
++#define btmtkuart_use_flow_control(bdev)	\
++	!!((bdev)->data->flags & BTMTKUART_FLAG_USE_FLOW_CONTROL)
+ 
+ static int mtk_hci_wmt_sync(struct hci_dev *hdev,
+ 			    struct btmtk_hci_wmt_params *wmt_params)
+@@ -555,6 +559,9 @@
+ 		goto err_open;
+ 	}
+ 
++	// JMM sadly there's no serdev_device_get_baudrate, whilst curr_speed handles the case
++	// were we reset whilst running, it doesn't cope unloading/reloading this module
++	
+ 	if (btmtkuart_is_standalone(bdev)) {
+ 		if (bdev->curr_speed != bdev->desired_speed)
+ 			err = serdev_device_set_baudrate(bdev->serdev,
+@@ -569,7 +576,7 @@
+ 			goto  err_serdev_close;
+ 		}
+ 
+-		serdev_device_set_flow_control(bdev->serdev, false);
++		serdev_device_set_flow_control(bdev->serdev, btmtkuart_use_flow_control(bdev));
+ 	}
+ 
+ 	bdev->stp_cursor = 2;
+@@ -687,7 +694,7 @@
+ 		return err;
+ 	}
+ 
+-	serdev_device_set_flow_control(bdev->serdev, false);
++	serdev_device_set_flow_control(bdev->serdev, btmtkuart_use_flow_control(bdev));
+ 
+ 	/* Send a dummy byte 0xff to activate the new baudrate */
+ 	param = 0xff;
+@@ -1101,11 +1108,18 @@
+ 	.fwname = FIRMWARE_MT7668,
+ };
+ 
++static const struct btmtkuart_data mt7915_data = {
++	.flags = BTMTKUART_FLAG_STANDALONE_HW | BTMTKUART_FLAG_USE_FLOW_CONTROL,
++	.fwname = FIRMWARE_MT7915,
++};
++
++
+ #ifdef CONFIG_OF
+ static const struct of_device_id mtk_of_match_table[] = {
+ 	{ .compatible = "mediatek,mt7622-bluetooth", .data = &mt7622_data},
+ 	{ .compatible = "mediatek,mt7663u-bluetooth", .data = &mt7663_data},
+ 	{ .compatible = "mediatek,mt7668u-bluetooth", .data = &mt7668_data},
++	{ .compatible = "mediatek,mt7915-bluetooth", .data = &mt7915_data},
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(of, mtk_of_match_table);
