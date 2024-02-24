@@ -71,7 +71,9 @@
 					#size-cells = <1>;
 
 					macaddr_eeprom_0: macaddr@0 {
+						compatible = "mac-base";
 						reg = <0x0 0x6>;
+						#nvmem-cell-cells = <1>;
 					};
 
 					macaddr_eeprom_6: macaddr@6 {
@@ -108,12 +110,12 @@
 };
 
 &gmac0 {
-	nvmem-cells = <&macaddr_eeprom_0>;
+	nvmem-cells = <&macaddr_eeprom_0 0>;
 	nvmem-cell-names = "mac-address";
 };
 
 &wlan_2g {
-	nvmem-cells = <&eeprom_factory_0>, <&macaddr_eeprom_0>;
+	nvmem-cells = <&eeprom_factory_0>, <&macaddr_eeprom_0 0>;
 	nvmem-cell-names = "eeprom", "mac-address";
 };
 
@@ -139,3 +141,48 @@
 
 	mediatek,disable-radar-background;
 };
+
+// JMM - the serial0 alias doesn't work for setting the order in which the devices are assigned, and so the one e00  becomes the console because the mt6577 driver loads first, fix it by having the same driver also do the console
+
+&uartlite {
+	compatible = "mediatek,mt6577-uart";
+	uart-type = "16550";
+};
+
+
+&palmbus {
+	uartfull@e00 {
+			//compatible = "mediatek,mt6577-uart","ns16550a";
+			compatible = "mediatek,mt6577-uart";
+			reg = <0xe00 0x100>;
+
+			clocks = <&sysc MT7621_CLK_UART3>;
+
+			resets = <&sysc MT7621_RST_UART3>;
+
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 28 IRQ_TYPE_LEVEL_HIGH>;
+
+			reg-shift = <2>;
+			reg-io-width = <4>;
+
+			uart-type = "16550A";
+
+			status = "okay";
+
+			bluetooth {
+				pinctrl-names = "default","runtime";
+				pinctrl-0 = <&uart3_pins>;
+				pinctrl-1 = <&uart3_pins>;
+
+   				compatible = "mediatek,mt7915-bluetooth";
+				boot-gpios=<&gpio 16 GPIO_ACTIVE_LOW>;
+				//reset-gpios=<&gpio 19 GPIO_ACTIVE_LOW>;
+
+				nvmem-cells = <&macaddr_eeprom_0 3>;
+				nvmem-cell-names = "bd-address";
+			};
+	};
+};
+
+
