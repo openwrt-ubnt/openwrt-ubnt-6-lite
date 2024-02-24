@@ -1,0 +1,43 @@
+--- util-linux-2.39.3/meson.build	2024-02-19 17:00:25.768979429 +0000
++++ util-linux-2.39.3/meson.build	2024-02-19 16:59:47.245779371 +0000
+@@ -1714,7 +1714,7 @@
+   install : true)
+ if not is_disabler(exe)
+   exes += exe
+-  manadocs += ['sys-utils/swapon.8.adoc']
++  #manadocs += ['sys-utils/swapon.8.adoc']
+   bashcompletions += ['swapon']
+ endif
+ 
+@@ -1729,7 +1729,7 @@
+   install : true)
+ if not is_disabler(exe)
+   exes += exe
+-  manlinks += {'swapoff.8': 'swapon.8'}
++  #manlinks += {'swapoff.8': 'swapon.8'}
+   bashcompletions += ['swapoff']
+ endif
+ 
+@@ -3400,16 +3400,16 @@
+     'libuuid/man/uuid_clear.3.adoc',
+     'libuuid/man/uuid_compare.3.adoc',
+     'libuuid/man/uuid_copy.3.adoc',
+-    'libuuid/man/uuid_generate.3.adoc',
++  #  'libuuid/man/uuid_generate.3.adoc',
+     'libuuid/man/uuid_is_null.3.adoc',
+     'libuuid/man/uuid_parse.3.adoc',
+     'libuuid/man/uuid_time.3.adoc',
+     'libuuid/man/uuid_unparse.3.adoc']
+-  manlinks += {
+-    'uuid_generate_random.3': 'uuid_generate.3',
+-    'uuid_generate_time.3': 'uuid_generate.3',
+-    'uuid_generate_time_safe.3': 'uuid_generate.3',
+-  }
++  #manlinks += {
++  #  'uuid_generate_random.3': 'uuid_generate.3',
++  #  'uuid_generate_time.3': 'uuid_generate.3',
++  #  'uuid_generate_time_safe.3': 'uuid_generate.3',
++  #}
+ endif
+ 
+ asciidoctor = find_program('asciidoctor', required : false)
